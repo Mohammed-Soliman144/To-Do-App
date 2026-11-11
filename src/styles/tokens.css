@@ -23,6 +23,7 @@
   --padding-xl: 3.25rem;
 
   /* Font size */
+  --font-tn: calc(0.5rem + 0.625vw);
   --font-xs: 0.75rem;
   --font-sm: 0.875rem;
   --font-md: 1rem;
