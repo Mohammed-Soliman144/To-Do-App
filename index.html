@@ -86,17 +86,13 @@
             <nav class="todo-app__filter filter">
               <ul class="filter__list list" aria-label="filter your tasks">
                 <li class="filter__list-item list-item" aria-current="true">
-                  <a href="#all" class="list-item__link">all</a>
+                  <a href="#all" class="list-item__link link--active">all</a>
                 </li>
                 <li class="filter__list-item list-item" aria-current="false">
-                  <a href="#active" class="list-item__link link--active"
-                    >active</a
-                  >
+                  <a href="#active" class="list-item__link">active</a>
                 </li>
                 <li class="filter__list-item list-item" aria-current="false">
-                  <a href="#completed" class="list-item__link link--completed"
-                    >completed</a
-                  >
+                  <a href="#completed" class="list-item__link">completed</a>
                 </li>
               </ul>
             </nav>
@@ -155,6 +151,8 @@
             <button class="button__edit" type="button">
               <span class="sr-only">edit task</span>
               <svg
+                aria-hidden="true"
+                focusable="false"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

@@ -231,14 +231,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  text-transform: capitalize;
   font-size: var(--font-tn);
   padding-inline: var(--padding-md);
   padding-block: var(--padding-xs);
 }
 
 @media (min-width: 20rem) {
-  .task-list__list-item { 
+  .task-list__list-item {
     font-size: var(--font-xs);
   }
 }
@@ -293,6 +292,11 @@ body {
   content: "\2713";
   background-color: var(--color-primary);
   color: var(--color-main-foreground);
+}
+
+.list-item__input + label {
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 
 .list-item__input:checked + label {
