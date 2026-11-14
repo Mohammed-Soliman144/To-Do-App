@@ -1,54 +1,10 @@
-import {newTempItem, taskTitle, taskList, allListItems} from "./selectors.js"
-import { addToState, retrieveState } from "./state.js"
+import {newTempItem, emptyTempItem, taskTitle, taskList, allListItems, remainItemText, form, addBtn, dateEle} from "./selectors.js"
+import { addToState, removeFromState, retrieveState, updateState } from "./state.js"
 
 const STORAGE_KEY = "TODO_APP"
 
-
-export function addNewItem(item = {}) {
-    if(!Object.keys(item).length) return
-    cloneTemp(newTempItem, taskList)
-    initializeItemProps(item)
-    addToState(item)
-    addToStorage(item)
-    return
-}
-
-
-export function cloneTemp(tempSelector = "", root = "") {
-    if(!tempSelector || !root) return
-    const temp = tempSelector.content.cloneNode(true)
-    root.appendChild(temp)
-    return
-}
-
-
-export function initializeItemProps(item) {
-    const {id, taskTitle} = item
-    const isEmptyItem = document.querySelector("ul.todo-app__task-list li.list-item--empty") ? true : false
-    if(isEmptyItem) {
-        const emptyItem = document.querySelector("ul.todo-app__task-list li.list-item--empty")
-        emptyItem.remove()
-    }   
-    const recentInput = document.querySelector("ul.todo-app__task-list li.task-list__list-item:last-child input.list-item__input")
-    // update name and id of input then label associated with input
-    const listItem = recentInput.closest("li")
-    listItem.dataset.itemId = `${id}`
-    listItem.dataset.isActive = `${!recentInput.checked}`
-    listItem.dataset.isCompleted = `${recentInput.checked}`
-    recentInput.closest("li").dataset.itemId = `${id}`
-    recentInput.dataset.itemId = `checkbox-${id}`
-    recentInput.name = `checkbox-${id}`
-    recentInput.id = `checkbox-${id}`
-    // if(recentInput.checked && recentInput.style.)
-
-    recentInput.nextElementSibling.htmlFor = `checkbox-${id}`
-    recentInput.nextElementSibling.textContent = taskTitle
-    return
-}
-
 export function addToStorage(item = {}) {
     if(typeof window === "undefined") return
-    console.log(item)
     const storage = retrieveFromStorage()
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...storage, item]))
     return
@@ -57,37 +13,6 @@ export function addToStorage(item = {}) {
 export function retrieveFromStorage() {
     if(typeof window === "undefined") return
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? []
-}
-
-
-export function handleSubmit(e) {
-    e.preventDefault()
-    const formData = new FormData(e.target)
-    const {["task-title"]: taskTitle} = Object.fromEntries(formData)
-    const item = {
-        id: Date.now(),
-        taskTitle,
-        isActive: true,
-        isCompleted: false,
-        date: new Date().toISOString()
-    }
-    console.log(retrieveState())
-    addNewItem(item)
-    moveToActiveTab()
-    checkCheckedItems()
-    filterItems()
-    console.log(retrieveState())
-    e.target.reset()
-}
-
-function moveToActiveTab() {
-    for(const item of allListItems) {
-        item.setAttribute("aria-current", "false")
-        item.querySelector("a").classList.remove("link--active")
-    }
-    const activeItem = [...allListItems].find(item => item.querySelector("a").textContent === "active")
-    activeItem.querySelector("a").classList.add("link--active")
-    activeItem.setAttribute("aria-current", "true")
 }
 
 function removeFromStorage(id) {
@@ -99,40 +24,6 @@ function removeFromStorage(id) {
     return
 }
 
-export function handleEdit(e) {
-    const label = e.target.closest("li.task-list__list-item").querySelector("label.list-item__label")
-    taskTitle.value = label.textContent
-    label.style.color = "var(--color-primary)"
-    taskTitle.style.color = "var(--color-primary)"
-}
-
-export function handleDelete(e) {
-    const listItem = e.target.closest("li")
-    removeFromStorage(parseInt(listItem.dataset.itemId))
-    listItem.remove()
-    taskTitle.textContent = ""
-    taskTitle.style.color = ""
-    return
-}
-
-export function handleCheck(e) {
-    const listItem =e.target.closest("li.task-list__list-item")
-    listItem.dataset.isActive = !e.target.checked
-    listItem.dataset.isCompleted = e.target.checked
-    const id = parseInt(e.target.closest("li.task-list__list-item").dataset.itemId)
-    const taskTitle = e.target.nextElementSibling.textContent
-    const isActive = !e.target.checked
-    const isCompleted = e.target.checked
-    const item = {
-        id,
-        taskTitle,
-        isActive,
-        isCompleted
-    }
-    filterItems()
-    updateStorage(item)
-}
-
 export function updateStorage(item) {
     if(typeof window === "undefined") return
     const storage = retrieveFromStorage()
@@ -140,80 +31,245 @@ export function updateStorage(item) {
     return
 }
 
-function filterItems() {
+export function cloneTemp(tempSelector = "", root = "") {
+    if(!tempSelector || !root) return
+    const temp = tempSelector.content.cloneNode(true)
+    root.appendChild(temp)
+    return
+}
+
+export function initializeItemProps(item) {
+    const {id, taskTitle} = item
+    const lastItem = taskList.querySelector("li:last-child")
+    lastItem.dataset.itemId = `${id}`
+    const checkInput = lastItem.querySelector("input")
+    checkInput.name = `checkbox-${id}`
+    checkInput.id = `checkbox-${id}`
+    checkInput.checked = item.isCompleted
+    const label = checkInput.nextElementSibling
+    label.htmlFor = `checkbox-${id}`
+    label.textContent = taskTitle
+    return
+}
+
+export function handleSubmit(e) {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    const {["task-title"]: taskTitle} = Object.fromEntries(formData)
+    const isEdit = e.target.querySelector("input[name=task-title]").dataset.itemId ? true : false
+    if(isEdit) {
+        const textInput = e.target.querySelector("input[name=task-title]")
+        const id = parseInt(textInput.dataset.itemId)
+        const isCompleted = textInput.dataset.isCompleted === "true" ? true : false 
+        const submitIcon = `<svg xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+            class="button__icon icon plus-icon" aria-hidden="true" focusable="false">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+        </svg>`
+        const updateItem = {
+            id,
+            isCompleted,
+            isActive: !isCompleted,
+            taskTitle
+        }
+        updateState(updateItem)
+        updateStorage(updateItem)
+        moveToTab()
+        addBtn.innerHTML = submitIcon
+        addBtn.setAttribute("aria-label", "add new task")
+        return
+    }
+    const item = {
+        id: Date.now(),
+        taskTitle,
+        isActive: true,
+        isCompleted: false,
+        date: new Date().toISOString()
+    }
+    // clone new li and append to ul
+    cloneTemp(newTempItem, taskList)
+    // initialize last li by item
+    initializeItemProps(item)
+    // update app state
+    addToState(item)
+    // update storage 
+    addToStorage(item)
+    // update ui => ul by items (li) according to current tab (all|active|completed)
+    moveToTab()
+    // update Active items
+    setItemsCount()
+    // reset form
+    e.target.reset()
+}
+
+export function filterItems(isAll, isCompleted, isActive) {
+    const activeList = retrieveState().filter(item => item.isActive === true)
+    const completedList = retrieveState().filter(item => item.isCompleted === true)
+    // const allList = retrieveState().filter(item => item.isCompleted === true || item.isActive === true)
+    const allList = retrieveState()
+    // remove all old items then initialize by last fresh update items in state (Single source of truth)
+    taskList.querySelectorAll("li").forEach(item => item.remove())
+    // add Empty Item if completedItems is emplty or allitem is empty
+    addEmptyItem()
+    if(isActive)
+        for(const item of activeList) {
+            cloneTemp(newTempItem, taskList)
+            initializeItemProps(item)
+        }
+    else if(isCompleted)
+        for(const item of completedList) {
+            cloneTemp(newTempItem, taskList)
+            initializeItemProps(item)
+        }
+    else if(isAll) 
+        for(const item of allList) {
+            cloneTemp(newTempItem, taskList)
+            initializeItemProps(item)
+        }
+}
+
+export function handleCheck(e) {
+    const checkInput = e.target
+    const id = parseInt(checkInput.closest("li").dataset.itemId)
+    const updateItem = retrieveState().find(item => item.id === id)
+    updateItem.isActive = !e.target.checked
+    updateItem.isCompleted = e.target.checked
+    // update state
+    updateState(updateItem)
+    // update storage
+    updateStorage(updateItem)
+    // Move tab
+    moveToTab()
+    // update Active items
+    setItemsCount()
+}
+
+function moveToTab() {
     const isAll = [...allListItems].find(item => item.getAttribute("aria-current") === "true" && item.querySelector("a.link--active").textContent === "all") ? true : false
     const isActive = [...allListItems].find(item => item.getAttribute("aria-current") === "true" && item.querySelector("a.link--active").textContent === "active") ? true : false
     const isCompleted = [...allListItems].find(item => item.getAttribute("aria-current") === "true" && item.querySelector("a.link--active").textContent === "completed") ? true : false
-    console.log([...allListItems].find(item => item.getAttribute("aria-current") === "true" && item.querySelector("a.link--active").textContent === "all"), [...allListItems].find(item => item.getAttribute("aria-current") === "true" && item.querySelector("a.link--active").textContent === "active"), [...allListItems].find(item => item.getAttribute("aria-current") === "true" && item.querySelector("a.link--active").textContent === "completed"))
-    if(isAll) 
-        filterAllItems()
-    else if(isActive)
-        filterActiveItems()
-    else if(isCompleted){
-        filterCompletedItems()
-    }       
+    filterItems(isAll, isCompleted, isActive)       
 }
 
-export function filterActiveItems() {
-    const allItems = taskList.querySelectorAll("li")
-    for(const listItem of allItems) 
-        listItem.dataset.isCompleted === 'true'?  
-            listItem.style.display = "none" : listItem.style.display = "flex"
+export function handleDelete(e) {
+    const item = e.target.closest("li")
+    const id = parseInt(item.dataset.itemId)
+    // remove from state
+    removeFromState(id)
+    // remove from storage
+    removeFromStorage(id)
+    // update item count
+    setItemsCount()
+    // remove from DOM
+    item.remove()
+    // check clear empty item
+    addEmptyItem()
+    return
 }
 
-export function checkCheckedItems() {
-    const allItems =  taskList.querySelectorAll("li")
-    for(const item of allItems){
-        if(item.dataset.isCompleted === "true"){
-            console.log(item.querySelector("input").checked)
-            item.querySelector("input").checked = true
-            // console.log(item.querySelector("input").checked)
-        }
+export function clearCompletedItems() {
+    const completedItems = retrieveState().filter(item => item.isCompleted === true)
+    const remainItems = retrieveState().filter(item => item.isCompleted !== true)
+    // remove all items
+    taskList.querySelectorAll("li").forEach(li => li.remove())
+    // update state and storage
+    for(const item of completedItems){
+        const id = item.id
+        removeFromState(id)
+        removeFromStorage(id)
     }
+    // update DOM by remain items
+    for(const item of remainItems) {
+        cloneTemp(newTempItem, taskList)
+        initializeItemProps(item)
+    }
+    moveToTab()
+    // update Active items
+    setItemsCount()
 }
 
+export function handleNavigation(e) {
+    const linkTab = e.target 
+    const allItems = e.target.closest("ul").querySelectorAll("li")
+    const item = e.target.closest("li") 
 
-export function filterCompletedItems() {
-    const allItems = taskList.querySelectorAll("li")
-    for(const listItem of allItems)
-        listItem.dataset.isActive === 'true'?  listItem.style.display = "none" : listItem.style.display = "flex"
-}
-
-export function filterAllItems() {
-    const allItems = taskList.querySelectorAll("li")
-    for(const listItem of allItems)
-        listItem.style.display = "flex"
-}
-
-export function handleFilter(e) {
-    console.log(e.target)
-    const allListItems = e.target.closest("ul").querySelectorAll("li")
-    const listItem = e.target.closest("li") 
-    const link = e.target 
-    const isAll = link.textContent === "all"
-    const isActive = link.textContent === "active"
-    const isCompleted = link.textContent === "completed"
-    allListItems.forEach(item => {
-        item.querySelector("a.list-item__link").classList.remove("link--active")
-        item.setAttribute("aria-current", "false")
+    allItems.forEach(link => {
+        link.querySelector("a.list-item__link").classList.remove("link--active")
+        link.setAttribute("aria-current", "false")
     })
-    link.classList.add("link--active")
-    listItem.setAttribute("aria-current", "true")
-    if(isAll)
-        filterAllItems()
-    else if(isActive)
-        filterActiveItems()
-    else if(isCompleted)
-        filterCompletedItems()
+    linkTab.classList.add("link--active")
+    item.setAttribute("aria-current", "true")
+    // move to track track aria-current=true and a.link--active
+    moveToTab()
 }
 
-export function handleClearAll() {
-    const allItems = taskList.querySelectorAll("li")
-    if(!allItems.length || typeof window === "undefined") return
-    for(const listItem of allItems) {
-        if(listItem.dataset.isCompleted === 'true'){
-            removeFromStorage(parseInt(listItem.dataset.itemId))
-            listItem.remove()
-        }
-    }
+export function addEmptyItem() {
+    const currentTab = [...allListItems].find(item => item.getAttribute("aria-current") === "true").querySelector("a")?.textContent
+    const isAll = currentTab === "all"
+    const isActive = currentTab === "active"
+    const isCompleted = currentTab === "completed"
+    const allItems = retrieveState()
+    const activeItems = allItems.filter(item => item.isActive === true)
+    const completedItems = allItems.filter(item => item.isCompleted === true)
+    if(isAll && !allItems.length || isActive && !activeItems.length  || isCompleted && !completedItems.length)
+        cloneTemp(emptyTempItem, taskList)
+    form.reset()
+}
+
+function clearEmptyItem() {
+    const allItems = retrieveState()
+    if(!allItems.length) return
+    const emptyItem = document.querySelector("li.list-item--empty")
+    emptyItem?.remove()
+}
+
+export function initializeApp() {
+    const allItems = retrieveFromStorage()
+    if(!allItems.length)
+        clearEmptyItem()
+    // update state
+    for(const item of allItems)
+        addToState(item)
+    // update DOM
+    moveToTab()
+    // update Date using Internationization Ecmascript API
+    const date = new Date()
+    const today = new Intl.DateTimeFormat("en-us", {
+        weekday: "long",
+        month: "long",
+        day: "2-digit"
+    }).format(date)
+    dateEle.textContent = today
+    dateEle.setAttribute("datetime", new Date().toLocaleDateString())
+    console.log(today, dateEle)
+    // update Active items
+    setItemsCount()
+}
+
+export function handleEdit(e) {
+    const label = e.target.closest("li.task-list__list-item").querySelector("label.list-item__label")
+    const id = e.target.closest("li.task-list__list-item").dataset.itemId
+    const isCompleted = e.target.closest("li.task-list__list-item").querySelector("input").checked
+    taskTitle.value = label.textContent
+    taskTitle.dataset.itemId = id 
+    taskTitle.dataset.isCompleted = isCompleted
+    label.style.color = "var(--color-primary)"
+    taskTitle.style.color = "var(--color-primary)"
+    const editIcon = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+            class="button__icon icon plus-icon"
+            aria-hidden="true"
+            focusable="false">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+        </svg>
+    `
+    addBtn.innerHTML = editIcon
+    addBtn.setAttribute("aria-label", "update task")
+    taskTitle.focus()
+}
+
+function setItemsCount() {
+    // update Active items
+    const activeItems = retrieveState().filter(item => item.isActive === true).length
+    remainItemText.textContent = activeItems
 }
