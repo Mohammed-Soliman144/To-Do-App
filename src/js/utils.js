@@ -241,7 +241,6 @@ export function initializeApp() {
     }).format(date)
     dateEle.textContent = today
     dateEle.setAttribute("datetime", new Date().toLocaleDateString())
-    console.log(today, dateEle)
     // update Active items
     setItemsCount()
 }
